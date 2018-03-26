@@ -1,0 +1,161 @@
+grammar org.xtext.example.mydsl.MyDsl with org.eclipse.xtext.common.Terminals
+
+generate myDsl "http://www.xtext.org/example/mydsl/MyDsl"
+
+Simulation:
+	'simulation' name=ID elements+=Elements*
+;
+
+Elements:
+	Roles | Sequences | Ensemble
+	
+;
+
+Ensemble:
+	'ensemble' name=ID statements+=Statements*
+;
+
+Sequences:
+    'sequence' name=ID states+=States+
+	
+;
+States:
+	'state' state_name=ID 'role' role_name=ID 'action' action_name=ID ';' 
+;
+Roles:
+	'role'  name=ID ('move' behavior=ID)? condition=Condition members+=Members*
+;	
+Members:
+	Rules | Behaviors 
+;
+Rules:
+	'rule' name=ID statements+=Statements*
+	
+;
+Behaviors:
+	'behavior'  name=ID  ('-args' args+=Argument+)? statements+=Statements* 
+;
+Statements:	
+	SetVelocity |		
+	Assignment |	
+	ReturnValue |	
+	Conditional_Statement|
+	Requires|
+	Propagate|
+	Share
+;
+
+Share:
+	'share' name=ID
+;
+
+Propagate:
+	'propagate' var=Variable 'to_role' role=[Roles] 
+;
+
+Requires:
+	'requires' roles+=[Roles]+ 
+;
+
+Conditional_Statement:
+	'if' condition=ConditionExp ':' if_stats+=Statements* ':'
+;
+
+Condition:
+	'condition' condition=Assignment 
+;
+
+SetVelocity:
+	'set_velocity' variable=Variable
+;
+
+Assignment:
+	right=RightSide '=' left=LeftSide
+;
+
+RightSide:
+	name=ID
+;
+LeftSide:
+	 M_List | MathExp 
+;
+
+Method:
+	name=ID '(' argument=Argument ')'
+;
+MethodEmpty:
+	name=ID par='()'
+;
+
+Argument:
+	 NumberExp | Loop  
+;
+
+NumberExp:
+   M_Number |
+   Negative_Number |
+   M_Float |
+   Variable |
+   Method|
+   MethodEmpty
+;
+
+
+Variable:
+	name=ID('.'suffix=ID)?//('()')?
+;
+M_Float:
+	int=INT '.' decimals+=INT+
+;
+
+
+M_Number:
+	digit=INT
+;
+
+Negative_Number:
+	'-' numb=INT
+;
+
+Loop:
+	'for' index=ID 'in' list=ID ':' math=MathExp
+;
+
+M_List:
+	'[' x=MathExp ',' y=MathExp']'
+;
+ConditionExp:
+	OrExp
+;
+OrExp returns ConditionExp:
+	AndExp ({OrOp.left=current} 'or' right=AndExp)*	
+;
+AndExp returns ConditionExp:
+	Equality({AndOp.left=current} 'and' right=Equality)*
+;
+Equality returns ConditionExp:
+	Comparison(({Equality.left=current} "=="| {NotEquality.left=current} "!="  ) right=Comparison)*
+;
+Comparison returns ConditionExp:
+	MathExp (({GreaterOp.left=current} '>' | 
+		{LowerOp.left=current} '<' |  
+		{GreaterEqOp.left=current} '>='|
+		{LowerEqOp.left=current} '<='
+	) right=MathExp)*
+;
+MathExp returns ConditionExp:
+	Factor (({PlusOp.left = current} '+' | {MinusOp.left = current} '-') right=Factor)* 
+;
+
+Factor returns ConditionExp:
+	Primitive ( ({MultOp.left = current} '*' | {DivOp.left = current} '/') right=Primitive)* 
+;
+
+Primitive returns ConditionExp:
+	NumberExp | '(' ConditionExp ')'
+;
+
+ReturnValue:
+	'result' result=Variable
+;
+
