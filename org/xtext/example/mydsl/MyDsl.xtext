@@ -20,10 +20,10 @@ Sequences:
 	
 ;
 States:
-	'state' state_name=ID 'role' role_name=ID 'action' action_name=ID ';' 
+	'state' state_name=ID 'role' role_name=ID 'event' action_name=ID 'condition' cond=ConditionExp ('timeout' timeout=NumberExp)?    ';' 
 ;
 Roles:
-	'role'  name=ID ('move' behavior=ID)? condition=Condition members+=Members*
+	'role'  name=ID condition=(Condition)? members+=Members*
 ;	
 Members:
 	Rules | Behaviors 
@@ -36,17 +36,58 @@ Behaviors:
 	'behavior'  name=ID  ('-args' args+=Argument+)? statements+=Statements* 
 ;
 Statements:	
-	SetVelocity |		
+	SetVelocity |	
+	Wait	       |
+	Move|
 	Assignment |	
 	ReturnValue |	
 	Conditional_Statement|
 	Requires|
 	Propagate|
-	Share
+	Share|
+	Share_Variable|
+	Shared_Variable|
+	Normalize
+;
+
+Shared_Variable:
+	'share' variable=Variable
+;
+
+Share_Variable:
+	'shared' element=Variable 'with' method=Methods
+;
+
+Methods:
+	'merge''('arg1=Argument ',' arg2=Argument ')' ':' st=Standards_Methods
+;
+Standards_Methods:
+	SetUnion|
+	MaxMethod	
+;
+
+MaxMethod:
+	'max''('arg1=Variable','arg2=Variable ')'
+;
+SetUnion:
+	'set_union''('lamba=Lamba')'
+;
+Lamba:
+	'lambda''('arg1=Variable ',' arg2=Variable')'':' comp=ConditionExp
+;
+
+Wait:
+	'wait' point=Variable
+;
+Move:
+	'move' point=Variable
+;
+Normalize:
+	'normalize' vector=Variable
 ;
 
 Share:
-	'share' name=ID
+	'execute' name=ID
 ;
 
 Propagate:
@@ -58,15 +99,15 @@ Requires:
 ;
 
 Conditional_Statement:
-	'if' condition=ConditionExp ':' if_stats+=Statements* ':'
+	'if' condition=ConditionExp '?' if_stats+=Statements* '!'
 ;
 
 Condition:
-	'condition' condition=Assignment 
+	'condition' condition=ConditionExp 
 ;
 
 SetVelocity:
-	'set_velocity' variable=Variable
+	'move''set_velocity' variable=Variable
 ;
 
 Assignment:
@@ -81,7 +122,10 @@ LeftSide:
 ;
 
 Method:
-	name=ID '(' argument=Argument ')'
+	name=ID '(' argument=Argument')'
+;
+Method_Two:
+	name=ID '(' argument1=Variable  ',' argument2=Variable ')'
 ;
 MethodEmpty:
 	name=ID par='()'
@@ -97,12 +141,26 @@ NumberExp:
    M_Float |
    Variable |
    Method|
-   MethodEmpty
+   Method_Two|
+   MethodEmpty|
+   List_Index |
+   Number_Drone|
+   Percentage
 ;
 
+Percentage:
+	'#'
+;
 
+Number_Drone:
+	'%'
+;
+
+List_Index:
+	prefix=Variable '['index=NumberExp']'
+;
 Variable:
-	name=ID('.'suffix=ID)?//('()')?
+	name=ID('.'suffix=ID)?
 ;
 M_Float:
 	int=INT '.' decimals+=INT+
